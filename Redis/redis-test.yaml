@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-cfgmp
+  namespace: dictionary
+data:
+  redis.conf: |
+    daemonize no
+    pidfile /var/run/redis_6379.pid
+    logfile "redis_6379.log"
+    requirepass redis666
+    bind * -::*
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+  namespace: dictionary
+spec:
+  selector:
+    app: redis-pod
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-dpl
+  namespace: dictionary
+spec:
+  selector:
+    matchLabels:
+      app: redis-pod
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis-pod
+    spec:
+      volumes:
+      - name: conf-vol
+        configMap:
+          name: cache-cfgmp
+      containers:
+      - name: redis-ctner
+        image: redis
+        resources:
+          limits:
+            memory: "1G"
+            cpu: "500m"
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: conf-vol
+          mountPath: /redis-conf
+        command:
+        - bash
+        - "-c"
+        - |
+          redis-server /redis-conf/redis.conf
+
