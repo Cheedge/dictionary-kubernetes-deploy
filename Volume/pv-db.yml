@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv1-db
+  namespace: dictionary
+spec:
+  capacity:
+    storage: 300M
+  accessModes:
+    - ReadWriteOnce
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /root/Dictionary/Volume/data/mysql/pv1-db
+    server: 192.168.149.139
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv2-db
+  namespace: dictionary
+spec:
+  capacity:
+    storage: 100M
+  accessModes:
+    - ReadWriteOnce
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /root/Dictionary/Volume/data/mysql/pv2-db
+    server: 192.168.149.139
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv3-db
+  namespace: dictionary
+spec:
+  capacity:
+    storage: 100M
+  accessModes:
+    - ReadWriteOnce
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /root/Dictionary/Volume/data/mysql/pv3-db
+    server: 192.168.149.139
+
+
