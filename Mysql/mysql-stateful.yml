@@ -1,0 +1,235 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-svc-headless
+  namespace: dictionary
+spec:
+  selector:
+    app: mysql-app
+  ports:
+  - port: 3307
+    targetPort: 3307
+  clusterIP: None
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-svc-read
+  namespace: dictionary
+spec:
+  selector:
+    app: mysql-app
+  ports:
+  - port: 3307
+    targetPort: 3307
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-stateful
+  namespace: dictionary
+spec:
+  selector:
+    matchLabels:
+      app: mysql-app
+  serviceName: db-svc-headless
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: mysql-app
+    spec:
+      volumes:
+        - name: docker-entrypoint-init
+          emptyDir:
+            {}
+        - name: conf
+          emptyDir:
+            {}
+        - name: db-conf-vol
+          configMap:
+            name: db-conf
+        - name: dict #db-ini-host-vol
+          hostPath:
+            path: /root/Dictionary/Volume/host
+            type: Directory
+        - name: data
+          emptyDir:
+            {}
+        - name: temp
+          hostPath:
+            path: /mnt/temp
+        - name: myconfigure
+          hostPath:
+            path: /root/Dictionary/Volume/myconfigure
+      initContainers:
+        - name: init-mysql
+          image: mysql
+          command:
+            - bash
+            - "-c"
+            - |
+              set -ex
+              # Generate mysql server-id from pod ordinal index.
+              [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
+              ordinal=${BASH_REMATCH[1]}
+              echo "[mysqld]" > /etc/mysql/conf.d/server-id.cnf
+              echo "server-id=$((100 + $ordinal))" >> /etc/mysql/conf.d/server-id.cnf
+              # cp /etc/resolv.conf /mnt/sql-init/
+              # cp /etc/hosts /mnt/sql-init/
+              if [[ $ordinal -eq 0 ]]; then
+                cp /mnt/config-map/db-master.conf /etc/mysql/conf.d/db-master.cnf
+                if [[ -d /mnt/sql-init ]]; then
+                  echo "dir exist"
+                fi
+                chmod 777 /mnt/sql-init
+                # ls /mnt/config-map/
+                #cp /mnt/sql-init/slave.sh /etc
+                # cp /mnt/sql-init/Dictionary.sql
+                cp /mnt/sql-init/master.sql /docker-entrypoint-initdb.d
+              else
+              #   ls /mnt/config-map/
+                rm -f /docker-entrypoint-initdb.d/master.sql
+                cp /mnt/config-map/db-slave.conf /etc/mysql/conf.d/db-slave.cnf
+                # cp /mnt/sql-init/slave.sh /docker-entrypoint-initdb.d
+              fi
+          volumeMounts:
+          - name: db-conf-vol
+            mountPath: /mnt/config-map
+          - name: conf
+            mountPath: /etc/mysql/conf.d
+          - name: data
+            mountPath: /var/lib/mysql/data
+          - name: docker-entrypoint-init
+            mountPath: /docker-entrypoint-initdb.d
+          - name: dict #db-ini-host-vol
+            mountPath: /mnt/sql-init
+      containers:
+      - name: mysql
+        image: mysql
+        ports:
+        - containerPort: 3307
+          name: mysql-port
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: Mysql_666
+          - name: MYSQL_ROOT_HOST
+            value: "%"
+        # command:
+        #   - bash
+        #   - "-c"
+        #   - |
+        #     set -ex
+        #     [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
+        #     podNum=${BASH_REMATCH[1]}
+        #     # if [[ -f /etc/mysql/my.cnf ]];then
+        #     #   cat /etc/mysql/my.cnf
+        #     # fi
+        #     # if [[ -f /etc/mysql/conf.d/db-master.cnf ]]; then
+        #     #   cat /etc/mysql/conf.d/db-master.cnf
+        #     # fi
+        #     hostname > /mnt/temp/list.txt
+        #     # touch /mnt/temp/mysqld.sock
+        #     echo "\n ++++++++/var/run/mysqld/+++++++++++++" >> /mnt/temp/list.txt
+        #     ls -R /var/run/mysqld/ >> /mnt/temp/list.txt
+        #     echo "\n ++++++++/var/lib/mysql/+++++++++++++" >> /mnt/temp/list.txt
+        #     ls -R /var/lib/mysql >> /mnt/temp/list.txt
+        #     echo "\n ++++++++/etc/mysql/+++++++++++++" >> /mnt/temp/list.txt
+        #     if [[ -f /etc/mysql/ ]]; then
+        #       ls -R /etc/mysql >> /mnt/temp/list.txt
+        #     fi
+        #     # mysqladmin -uroot -pMysql_666 ping
+        #     # mysql -uroot -pMysql_666 -e "SHOW DATABASES;";
+        #     if [[ $podNum -ne 0 ]]; then
+        #       LOG_FILE=`mysql -h mysql-stateful-0 -uroot --port 3306 -pMysql_666 -AN --execute "show master status;" | awk '{print $1}'`
+        #       LOG_POS=`mysql -h mysql-stateful-0 -uroot --port 3306 -pMysql_666 -AN --execute "show master status;" | awk '{print $2}'`
+        #       mysql -uroot -pMysql_666 -AN --execute "CHANGE REPLICATION SOURCE TO SOURCE_HOST='mysql-stateful-0', SOURCE_PORT=3306, SOURCE_USER='slave', SOURCE_PASSWORD='Mysql_666', SOURCE_LOG_FILE='${LOG_FILE}', SOURCE_LOG_POS='${LOG_POS}';"
+        #       mysql -uroot -pMysql_666 -AN --execute "START slave;"
+        #     else
+        #       # mysqld --user=root --initialize
+        #       /mnt/temp/docker-entrypoint.sh mysqld
+        #     fi
+        # terminationMessagePath: /mnt/temp
+        # livenessProbe:
+        #   exec:
+        #     command: ["mysqladmin", "-h", "mysql-stateful-0", "-uroot", "--port", "3306", "-pMysql_666", "ping"]
+        # livenessProbe:
+        #   exec:
+        #     command: ["bash", "-c", "hostname > /liveApr17.txt"]
+        #     # command: ["mysqladmin","-h", "10.244.1.109", "ping", "-pMysql_666"]
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 10
+        #   timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            # command: ["bash", "-c", "hostname -i > /readApr17.txt"]
+            command: ["mysql","-h", "127.0.0.1", "--port", "3307", "-pMysql_666", "-e", "SELECT 1;"]
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          timeoutSeconds: 1
+        volumeMounts:
+        - name: conf
+          mountPath: /etc/mysql/conf.d
+        - name: data
+          mountPath: /var/lib/mysql/data
+        - name: docker-entrypoint-init
+          mountPath: /docker-entrypoint-initdb.d
+        - name: temp
+          mountPath: /mnt/temp
+      - name: mysql-post
+        image: mysql
+        ports:
+          - containerPort: 3360
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: Mysql_666
+        - name: MYSQL_ROOT_HOST
+          value: "%"
+        command:
+          - bash
+          - "-c"
+          - |
+            set -ex
+            [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
+            posNum=${BASH_REMATCH[1]}
+            if [[ $posNum -eq 0 ]]; then
+              /myconfigure-file/post-master.sh
+            else
+              /myconfigure-file/slave.sh
+            fi
+            # touch /tmp/hello.txt
+            # while true
+            # do
+            #   /bin/echo $(date +%T) >> /tmp/hello.txt
+            #   sleep 3
+            # done
+            sleep 36000
+        # livenessProbe:
+        #   exec:
+        #     command: ["mysqladmin", "ping", "-pMysql_666"]
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 10
+        #   timeoutSeconds: 5
+        # readinessProbe:
+        #   exec:
+        #     command: ["mysql", "-h", "127.0.0.1", "-uroot", "--port", "3306", "-pMysql_666", "-e", "SELECT 1;"]
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 2
+        #   timeoutSeconds: 1
+        volumeMounts:
+          - mountPath: /myconfigure-file
+            name: myconfigure
+
+  # volumeClaimTemplates:
+  # - metadata:
+  #     name: data
+  #   spec:
+  #     accessModes: [ "ReadWriteOnce" ]
+  #     resources:
+  #       requests:
+  #         storage: 100M
+
