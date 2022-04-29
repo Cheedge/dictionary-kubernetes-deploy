@@ -1,0 +1,22 @@
+.vscode/*
+# ConfigMap/
+mysql-ini.sh
+new-conf.yaml
+docker-entrypoint.sh
+configmap.yml
+# Mysql/
+master.yaml
+mysql-slave-ss.yml
+slave.sql
+slave.yaml
+# Volume
+Volume/data/*
+Volume/host/Dictionary.sql
+# Test/
+Test/ConfigMap/*
+Test/Pod-svc/ubuntu-dns-test.yaml
+Test/Pod-svc/test-*
+Test/Pod-svc/ingress-example.yaml
+dns-test.yaml
+mysql-dpl-port.yaml
+busybox.yaml
