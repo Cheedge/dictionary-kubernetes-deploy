@@ -1,0 +1,32 @@
+* NameSpace:
+    dictionary
+* Secret
+
+* Pods:
+    1. web_pod
+	Container: Web_app
+    2. mysql_pod
+	Mysql_master(1), Mysql_slave(2)
+    3. Nginx_pod
+	Container: Nginx
+    4. redis_pod
+	Redis_master(1), Redis_slave(2)
+
+* Service:
+    1. Nginx NodePort
+    2. master-slave HeadLess
+    3. Web_app-mysql/redis ClusterPort
+
+* Controler:
+    1. Deployment: Nginx, Web_app
+    2. StatefulSet: mysql, redis
+    3. DaemonSet: all logs
+
+* Volume:
+    1. PV(6*500M rw)
+    2. PVC
+    3. NFS: NFS server-> k8s-master node
+    4. ConfigMap
+
+    1. mysql_vol
+    2. redis_vol
