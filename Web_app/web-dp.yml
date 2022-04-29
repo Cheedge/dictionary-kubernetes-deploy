@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-app-svc
+  namespace: dictionary
+spec:
+  # clusterIP: 10.99.192.249
+  selector:
+    app: web-app-pod
+  # type: NodePort
+  ports:
+  - port: 5000
+    targetPort: 5000
+    # nodePort: 31798
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-dpl
+spec:
+  selector:
+    matchLabels:
+      app: web-app-pod
+  template:
+    metadata:
+      labels:
+        app: web-app-pod
+    spec:
+      volumes:
+      - name: project-file
+        hostPath:
+          path: /root/Dictionary/web/project
+      containers:
+      - name: web-app-ctn
+        image: python:3.8
+        workingDir: /project
+        env:
+        - name: FLASK_APP
+          value: app
+        - name: FLASK_ENV
+          value: development
+        command:
+        - bash
+        - "-c"
+        - |
+          set -ex
+          cp /etc/resolv.conf /etc/resolve.conf.old
+          sed "s/ndots:5/ndots:2/g" /etc/resolve.conf.old > /etc/resolv.conf
+          # mv /var/lib/apt/lists/ /var/lib/apt/lists-old/
+          # mkdir -p /var/lib/apt/lists/
+          # mkdir /project
+          # mkdir /project/templates
+          # mkdir -p /project/static/css
+          # mkdir -p /project/static/js
+          # cp -r /mnt/project/requirements.txt /project
+          # cp -r /mnt/project/uwsgi.ini /project
+          # cp -r /mnt/project/app.py /project
+          # cp -r /mnt/project/templates/ /project/templates
+          # cp -r /mnt/project/static/css /project/static/css
+          # cp -r /mnt/project/static/js /project/static/js
+          # ping -c 3 amazon.com
+          # ping -c 3 www.google.com
+          # ping 127.0.0.1
+          # sleep 3600
+          pip install -r requirements.txt
+          uwsgi --ini uwsgi.ini
+        volumeMounts:
+        - name: project-file
+          mountPath: /project
+      # containers:
+      # - name: web-app-ctn
+      #   image: <Image>
+        resources:
+          limits:
+            memory: "1G"
+            cpu: "500m"
+        ports:
+        - containerPort: 5000
+
+
