@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-conf
+  namespace: dictionary
+data:
+  db-master.conf: |
+    [mysqld]
+    port=3307
+    datadir=/var/lib/mysql/data
+    log-error=/var/lib/mysql/mysql-error.log
+    pid-file=/var/run/mysqld/mysqld.pid
+    log-bin=binlog
+    read-only=0
+    binlog-ignore-db=mysql
+    binlog-ignore-db=information_schema
+    binlog-ignore-db=performance_schema
+    binlog-ignore-db=sys
+    binlog-format=STATEMENT
+    secure-file-priv= ""
+    skip_ssl
+    default_authentication_plugin=mysql_native_password
+    bind-address=0.0.0.0
+    #server_id=2
+    
+  db-slave.conf: |
+    [mysqld]
+    port=3307
+    datadir=/var/lib/mysql/data
+    skip_ssl
+    default_authentication_plugin=mysql_native_password
+    relay-log=relay_log
+    read_only=1
+    [mysqld_safe]
+    log-error=/var/lib/mysql/mysql-error.log
+    pid-file=/var/run/mysql/mysql.pid
+    bind-address=0.0.0.0
+    #server_id=3
+# ---
+
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: db-conf-slave
+# data:
+#   my.conf: |
+#     [mysqld]
+#     datadir=/var/lib/mysql/data
+#     skip_ssl
+#     default_authentication_plugin=mysql_native_password
+#     server_id=3
+#     relay-log=relay_log
+#     read_only=1
+#     [mysqld_safe]
+#     log-error=/var/lib/mysql/mysql-error.log
+#     pid-file=/var/run/mysql/mysql.pid
+
+
+
