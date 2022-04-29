@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc1-db
+  namespace: dictionary
+spec:
+  resources:
+    requests:
+      storage: 300M
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc2-db
+  namespace: dictionary
+spec:
+  resources:
+    requests:
+      storage: 100M
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc3-db
+  namespace: dictionary
+spec:
+  resources:
+    requests:
+      storage: 100M
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+
